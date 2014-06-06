@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	. "bitbucket.org/hailiang/getgo/db/schema"
+	. "github.com/hailiang/getgo/db/schema"
 	"strings"
 )
 

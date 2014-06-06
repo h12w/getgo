@@ -7,7 +7,7 @@ package postgres
 import (
 	"database/sql"
 	"sync"
-	"bitbucket.org/hailiang/getgo/db"
+	"github.com/hailiang/getgo/db"
 )
 
 func Open(dataSourceName string) (db.DB, error) {

@@ -5,7 +5,7 @@
 package util
 
 import (
-	"bitbucket.org/hailiang/getgo"
+	"github.com/hailiang/getgo"
 	"log"
 	"net/http"
 )

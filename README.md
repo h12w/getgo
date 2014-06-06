@@ -1,3 +1,3 @@
-getgo: a concurrent web scrapper framework in Go
+getgo: a concurrent web scraping framework in Go
 ================================================
 
