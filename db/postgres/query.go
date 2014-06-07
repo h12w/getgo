@@ -50,7 +50,7 @@ func upsert(tx execer, s interface{}) error {
 	q := insertIgnoreQuery(r)
 	result, err := q.Do(tx)
 	if err != nil {
-		return fmt.Errorf("%v -> %v.", err, q)
+		return fmt.Errorf("%v -> %v", err, q)
 	}
 
 	n, err := result.RowsAffected()
@@ -71,7 +71,7 @@ func upsert(tx execer, s interface{}) error {
 		}
 
 		if n == 0 {
-			return fmt.Errorf("failed to update row: %v.", q)
+			return fmt.Errorf("failed to update row: %v", q)
 		}
 	}
 
@@ -96,7 +96,7 @@ func deleteRecord(tx execer, s interface{}) error {
 	q := deleteQuery(r)
 	_, err := q.Do(tx)
 	if err != nil {
-		return fmt.Errorf("%v -> %v.", err, q)
+		return fmt.Errorf("%v -> %v", err, q)
 	}
 	return nil
 }

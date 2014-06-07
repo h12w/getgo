@@ -74,7 +74,7 @@ func ToTask(t interface{}, tx Tx) Task {
 	case Task:
 		return task
 	default:
-		panic(errors.New("task is unknown type."))
+		panic(errors.New("task is unknown type"))
 	}
 
 }

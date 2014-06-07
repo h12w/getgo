@@ -136,7 +136,7 @@ func NewRecord(s interface{}) *Record {
 
 	if v.Kind() != reflect.Struct {
 		panic(fmt.Errorf(
-			"record must be initialized from a struct. %v, %v.", v.Kind(), v))
+			"record must be initialized from a struct. %v, %v", v.Kind(), v))
 	}
 
 	t := v.Type()
