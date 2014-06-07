@@ -16,6 +16,7 @@ type TaskGroup struct {
 	Tx
 }
 
+// NewTaskGroup creates a TaskGroup from a trasaction object.
 func NewTaskGroup(tx Tx) *TaskGroup {
 	return &TaskGroup{Tx: tx}
 }
@@ -63,9 +64,8 @@ func (t *groupTx) done(result bool) error {
 	if t.cnt == 0 {
 		if t.result {
 			return t.tx.Commit()
-		} else {
-			return t.tx.Rollback()
 		}
+		return t.tx.Rollback()
 	}
 	return nil
 }
@@ -78,10 +78,10 @@ func (t *groupTx) Rollback() error {
 	return t.done(false)
 }
 
-// Add either HtmlTask, TextTask or StorableTask to TaskGroup.
+// Add either HTMLTask, TextTask or StorableTask to TaskGroup.
 func addTask(task interface{}, g *TaskGroup) {
 	switch t := task.(type) {
-	case HtmlTask:
+	case HTMLTask:
 		g.Add(Storable{Text{t}})
 	case TextTask:
 		g.Add(Storable{t})

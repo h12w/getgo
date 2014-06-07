@@ -7,26 +7,27 @@ package postgres
 import (
 	"fmt"
 	"testing"
-	"getgo/db"
+
+	"github.com/hailiang/getgo/db/schema"
 )
 
-func Test_sqlstore(t *testing.T) {
+func TestSqlstore(t *testing.T) {
 	type StructType struct {
-		Id      int `sql:"pk"`
-		IdOther int `sql:"pk"`
+		ID      int `sql:"pk"`
+		IDOther int `sql:"pk"`
 		SVal    string
 		IVal    int
 		PVal    *int
 	}
-	s := &StructType{Id: 1, IdOther: 2, SVal: "S", IVal: 9}
-	r := db.NewRecord(s)//.SetKey("Id", "IdOther")
+	s := &StructType{ID: 1, IDOther: 2, SVal: "S", IVal: 9}
+	r := schema.NewRecord(s) //.SetKey("Id", "IdOther")
 
 	fmt.Println(r)
 	for _, f := range r.Fields {
 		fmt.Println(f)
 	}
 
-	fmt.Println(InsertIgnoreQuery(r))
-	fmt.Println(UpdateQuery(r))
-	fmt.Println(DeleteQuery(r))
+	fmt.Println(insertIgnoreQuery(r))
+	fmt.Println(updateQuery(r))
+	fmt.Println(deleteQuery(r))
 }

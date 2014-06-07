@@ -15,11 +15,11 @@ func p(v ...interface{}) {
 
 func pp(v ...interface{}) {
 	for _, item := range v {
-		fmt.Println(toJson(item))
+		fmt.Println(toJSON(item))
 	}
 }
 
-func toJson(v interface{}) string {
+func toJSON(v interface{}) string {
 	s, _ := json.MarshalIndent(v, "", "  ")
 	return string(s)
 }

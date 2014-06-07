@@ -14,8 +14,8 @@ import (
 
 const avgCounterCap = 50
 
-// HttpLogger wraps an HTTP client and logs the request and network speed.
-type HttpLogger struct {
+// HTTPLogger wraps an HTTP client and logs the request and network speed.
+type HTTPLogger struct {
 	client         Doer
 	startTime      time.Time
 	mu             sync.Mutex
@@ -24,8 +24,10 @@ type HttpLogger struct {
 	avgByteCounter *avgCounter
 }
 
-func NewHttpLogger(client *http.Client) *HttpLogger {
-	httpLogger := &HttpLogger{
+// NewHTTPLogger creates an HTTPLogger by inspecting the connection's Read
+// method of an http.Client.
+func NewHTTPLogger(client *http.Client) *HTTPLogger {
+	httpLogger := &HTTPLogger{
 		client:         client,
 		startTime:      time.Now(),
 		avgByteCounter: newAvgCounter()}
@@ -37,29 +39,30 @@ func NewHttpLogger(client *http.Client) *HttpLogger {
 	}
 	return httpLogger
 }
-func (l *HttpLogger) wrappedDial(network, address string) (net.Conn, error) {
+func (l *HTTPLogger) wrappedDial(network, address string) (net.Conn, error) {
 	conn, err := net.Dial(network, address)
 	if err == nil {
-		return &ReadFilter{conn, l.gotBytes}, err
+		return &readFilter{conn, l.gotBytes}, err
 	}
 	return conn, err
 }
 
-func (l *HttpLogger) gotBytes(b []byte) {
+func (l *HTTPLogger) gotBytes(b []byte) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.totalByteCount += len(b)
 	l.avgByteCounter.Add(len(b), time.Now())
 }
 
-func (l *HttpLogger) Do(req *http.Request) (resp *http.Response, err error) {
+// Do implements the Doer interface.
+func (l *HTTPLogger) Do(req *http.Request) (resp *http.Response, err error) {
 	resp, err = l.client.Do(req)
 	l.measure(resp, err)
 	l.log(req)
 	return resp, err
 }
 
-func (l *HttpLogger) measure(resp *http.Response, err error) {
+func (l *HTTPLogger) measure(resp *http.Response, err error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if err == nil {
@@ -67,7 +70,7 @@ func (l *HttpLogger) measure(resp *http.Response, err error) {
 	}
 }
 
-func (l *HttpLogger) log(req *http.Request) {
+func (l *HTTPLogger) log(req *http.Request) {
 	sec := time.Now().Sub(l.startTime).Seconds()
 	reqSpeed := int(float64(l.totalReqCount) / sec)
 	kbSpeed := int(float64(l.totalByteCount) / sec / 1000)
@@ -75,12 +78,12 @@ func (l *HttpLogger) log(req *http.Request) {
 		int(l.avgByteCounter.PerSecond()/1000), reqSpeed, kbSpeed, req.URL)
 }
 
-type ReadFilter struct {
+type readFilter struct {
 	net.Conn
 	read func(b []byte)
 }
 
-func (l *ReadFilter) Read(b []byte) (n int, err error) {
+func (l *readFilter) Read(b []byte) (n int, err error) {
 	n, err = l.Conn.Read(b)
 	if err == nil {
 		l.read(b[:n])

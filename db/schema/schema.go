@@ -16,12 +16,14 @@ import (
 	"time"
 )
 
+// Field represents a field in a record.
 type Field struct {
 	Name  string
 	Value interface{}
 	IsKey bool
 }
 
+// NewField creates a Field given name, value and whether it is a primary key or not.
 func NewField(name string, value interface{}, isKey bool) *Field {
 	v := reflect.ValueOf(value)
 	if v.Kind() == reflect.Ptr {
@@ -38,16 +40,22 @@ func NewField(name string, value interface{}, isKey bool) *Field {
 
 }
 
+// FieldSelector is a function that returns a boolean value given a Field, for
+// selecting one or multiple fields.
 type FieldSelector func(*Field) bool
 
+// Key is a FieldSelector for selecting a primary key.
 func Key(f *Field) bool {
 	return f.IsKey
 }
 
+// NonKey is a FieldSelector for selecting a non-key field.
 func NonKey(f *Field) bool {
 	return !f.IsKey
 }
 
+// DbType is a FieldSelector for selecting a Field with a value supported by
+// the database driver.
 func DbType(f *Field) bool {
 	switch f.Value.(type) {
 	case int, *int, string, *string, bool, *bool,
@@ -63,12 +71,16 @@ func DbType(f *Field) bool {
 	return false
 }
 
+// NonNil is a FieldSelector for selecting a non-nil value.
 func NonNil(f *Field) bool {
 	return f.Value != nil
 }
 
+// Fields is the slice of Field.
 type Fields []*Field
 
+// Filter method filters the Fields according to some FieldSelectors and returns
+// the result.
 func (fs Fields) Filter(conds ...FieldSelector) (fields Fields) {
 nextField:
 	for _, field := range fs {
@@ -82,6 +94,7 @@ nextField:
 	return
 }
 
+// Values returns a slice of field values.
 func (fs Fields) Values() []interface{} {
 	values := make([]interface{}, len(fs))
 	for i, f := range fs {
@@ -90,17 +103,18 @@ func (fs Fields) Values() []interface{} {
 	return values
 }
 
+// Record represents a table record including the table name.
 type Record struct {
-	Name   string
-	Fields Fields
+	Name   string // Name of the table
+	Fields Fields // Fields in the table
 }
 
-type SqlTag struct {
+type sqlTag struct {
 	Pk bool
 }
 
-func parseSqlTag(tag string) *SqlTag {
-	sqlTag := &SqlTag{}
+func parseSqlTag(tag string) *sqlTag {
+	sqlTag := &sqlTag{}
 	specs := strings.Split(tag, ",")
 	for _, spec := range specs {
 		if spec == "pk" {
@@ -110,6 +124,7 @@ func parseSqlTag(tag string) *SqlTag {
 	return sqlTag
 }
 
+// NewRecord creates a Record from an object.
 func NewRecord(s interface{}) *Record {
 	v := reflect.ValueOf(s)
 	if v.Kind() == reflect.Ptr {
@@ -145,6 +160,7 @@ func NewRecord(s interface{}) *Record {
 	}
 }
 
+// SetKey sets the primary keys of a record.
 func (r *Record) SetKey(names ...string) *Record {
 	for _, name := range names {
 		name = camelToSnake(name)

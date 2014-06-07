@@ -8,33 +8,38 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	. "github.com/hailiang/getgo/db/schema"
 	"strings"
+
+	sc "github.com/hailiang/getgo/db/schema"
 )
 
-type Execer interface {
+// execer is an interface that satisfies the Exec method of sql.Tx.
+type execer interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
-type Query struct {
+// query stores a SQL query.
+type query struct {
 	Cmd  string
 	Args []interface{}
 }
 
-func (q *Query) Do(ex Execer) (sql.Result, error) {
+// Do executes the query on an execer provided as an argument.
+func (q *query) Do(ex execer) (sql.Result, error) {
 	return ex.Exec(q.Cmd, q.Args...)
 }
 
+// upsert insert a record or update it if given primary key exists.
 // Limitation: The current implementation does not handle confilicts between
 // transactions. So there must be an external lock to make sure there is only
 // one transaction at the same time.
-func Upsert(tx Execer, s interface{}) error {
-	var r *Record
+func upsert(tx execer, s interface{}) error {
+	var r *sc.Record
 	switch s.(type) {
-	case *Record:
-		r = s.(*Record)
+	case *sc.Record:
+		r = s.(*sc.Record)
 	default:
-		r = NewRecord(s)
+		r = sc.NewRecord(s)
 	}
 
 	// ignore nil record
@@ -42,7 +47,7 @@ func Upsert(tx Execer, s interface{}) error {
 		return nil
 	}
 
-	q := InsertIgnoreQuery(r)
+	q := insertIgnoreQuery(r)
 	result, err := q.Do(tx)
 	if err != nil {
 		return fmt.Errorf("%v -> %v.", err, q)
@@ -54,7 +59,7 @@ func Upsert(tx Execer, s interface{}) error {
 	}
 
 	if n == 0 {
-		q := UpdateQuery(r)
+		q := updateQuery(r)
 		result, err := q.Do(tx)
 		if err != nil {
 			return err
@@ -73,13 +78,14 @@ func Upsert(tx Execer, s interface{}) error {
 	return nil
 }
 
-func Delete(tx Execer, s interface{}) error {
-	var r *Record
+// delete deletes a record of a given primary key.
+func deleteRecord(tx execer, s interface{}) error {
+	var r *sc.Record
 	switch s.(type) {
-	case *Record:
-		r = s.(*Record)
+	case *sc.Record:
+		r = s.(*sc.Record)
 	default:
-		r = NewRecord(s)
+		r = sc.NewRecord(s)
 	}
 
 	// ignore nil record
@@ -87,7 +93,7 @@ func Delete(tx Execer, s interface{}) error {
 		return nil
 	}
 
-	q := DeleteQuery(r)
+	q := deleteQuery(r)
 	_, err := q.Do(tx)
 	if err != nil {
 		return fmt.Errorf("%v -> %v.", err, q)
@@ -95,53 +101,57 @@ func Delete(tx Execer, s interface{}) error {
 	return nil
 }
 
-func InsertIgnoreQuery(r *Record) *Query {
-	fields := r.Fields.Filter(DbType, NonNil)
-	pkeys := r.Fields.Filter(Key)
-	return &Query{
-		Cmd: pg(query("INSERT INTO", quote(r.Name), brace(fieldList(fields)), "SELECT", placeholderList(fields),
-			"WHERE NOT EXISTS", brace(query("SELECT 1 FROM", quote(r.Name), "WHERE", fieldEqualList(pkeys))))),
+// insertIgnoreQuery returns a query that inserts a record when the primary keys
+// not exist, otherwise ignore it.
+func insertIgnoreQuery(r *sc.Record) *query {
+	fields := r.Fields.Filter(sc.DbType, sc.NonNil)
+	pkeys := r.Fields.Filter(sc.Key)
+	return &query{
+		Cmd: pg(join("INSERT INTO", quote(r.Name), brace(fieldList(fields)), "SELECT", placeholderList(fields),
+			"WHERE NOT EXISTS", brace(join("SELECT 1 FROM", quote(r.Name), "WHERE", fieldEqualList(pkeys))))),
 		Args: append(fields.Values(), pkeys.Values()...),
 	}
 }
 
-func UpdateQuery(r *Record) *Query {
-	pkeys := r.Fields.Filter(Key)
-	rest := r.Fields.Filter(NonKey, DbType, NonNil)
+// updateQuery returns a query that updates a record of the same primary keys.
+func updateQuery(r *sc.Record) *query {
+	pkeys := r.Fields.Filter(sc.Key)
+	rest := r.Fields.Filter(sc.NonKey, sc.DbType, sc.NonNil)
 	if len(rest) == 0 {
 		rest = pkeys
 	}
-	return &Query{
-		Cmd:  pg(query("UPDATE", quote(r.Name), "SET", brace(fieldList(rest)), "=", brace(placeholderList(rest)), "WHERE", fieldEqualList(pkeys))),
+	return &query{
+		Cmd:  pg(join("UPDATE", quote(r.Name), "SET", brace(fieldList(rest)), "=", brace(placeholderList(rest)), "WHERE", fieldEqualList(pkeys))),
 		Args: append(rest.Values(), pkeys.Values()...),
 	}
 }
 
-func DeleteQuery(r *Record) *Query {
-	fields := r.Fields.Filter(DbType, NonNil)
-	return &Query{
-		Cmd: pg(query("DELETE FROM", quote(r.Name), "WHERE",
+// deleteQuery return a query that deletes a record.
+func deleteQuery(r *sc.Record) *query {
+	fields := r.Fields.Filter(sc.DbType, sc.NonNil)
+	return &query{
+		Cmd: pg(join("DELETE FROM", quote(r.Name), "WHERE",
 			fieldEqualList(fields))),
 		Args: fields.Values(),
 	}
 }
 
-func fieldList(fs Fields) string {
+func fieldList(fs sc.Fields) string {
 	return list(len(fs), ", ", func(i int) string { return quote(fs[i].Name) })
 }
 
-func placeholderList(fs Fields) string {
+func placeholderList(fs sc.Fields) string {
 	return list(len(fs), ", ", func(int) string { return "?" })
 }
 
-func fieldEqualList(fs Fields) string {
+func fieldEqualList(fs sc.Fields) string {
 	return list(len(fs), " AND ",
 		func(i int) string {
 			return quote(fs[i].Name) + "=?"
 		})
 }
 
-func query(args ...string) string {
+func join(args ...string) string {
 	return strings.Join(args, " ")
 }
 

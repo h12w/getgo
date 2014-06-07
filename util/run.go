@@ -5,39 +5,41 @@
 package util
 
 import (
-	"github.com/hailiang/getgo"
 	"log"
 	"net/http"
+
+	"github.com/hailiang/getgo"
 )
 
+// Run runs tasks and print the data fetched.
 func Run(tasks ...interface{}) {
-	checkError(getgo.Run(runner(), PrinterTx{}, tasks...))
+	checkError(getgo.Run(runner(), printerTx{}, tasks...))
 }
 
 func runner() getgo.Runner {
-	client := getgo.NewHttpLogger(&http.Client{})
+	client := getgo.NewHTTPLogger(&http.Client{})
 	return getgo.SequentialRunner{
-		client,
-		getgo.ErrorHandlerFunc(func(req *http.Request, err error) error {
+		Client: client,
+		ErrorHandler: getgo.ErrorHandlerFunc(func(req *http.Request, err error) error {
 			log.Printf("Error: %v, Reqeust: %v.\n", err, req.URL)
 			return nil
 		})}
 }
 
-type PrinterTx struct {
+type printerTx struct {
 }
 
-func (PrinterTx) Store(v interface{}) error {
+func (printerTx) Store(v interface{}) error {
 	pp(v)
 	return nil
 }
 
-func (PrinterTx) Commit() error {
+func (printerTx) Commit() error {
 	p("Commited.")
 	return nil
 }
 
-func (PrinterTx) Rollback() error {
+func (printerTx) Rollback() error {
 	p("Rolled back.")
 	return nil
 }

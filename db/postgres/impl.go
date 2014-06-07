@@ -7,9 +7,11 @@ package postgres
 import (
 	"database/sql"
 	"sync"
+
 	"github.com/hailiang/getgo/db"
 )
 
+// Open returns a DB object of PostgreSQL database.
 func Open(dataSourceName string) (db.DB, error) {
 	db, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
@@ -99,7 +101,7 @@ func storeRecords(vs []interface{}, tx *sql.Tx) error {
 		return nil
 	}
 	for _, v := range vs {
-		if err := Upsert(tx, v); err != nil {
+		if err := upsert(tx, v); err != nil {
 			return err
 		}
 	}
@@ -111,7 +113,7 @@ func deleteRecords(vs []interface{}, tx *sql.Tx) error {
 		return nil
 	}
 	for _, v := range vs {
-		if err := Delete(tx, v); err != nil {
+		if err := deleteRecord(tx, v); err != nil {
 			return err
 		}
 	}

@@ -9,15 +9,16 @@ import (
 	"sync"
 )
 
-// Retry number when failed to fetch a page.
+// RetryNum is the retry number when failed to fetch a page.
 var RetryNum = 3
 
-// A simple single threaded task runner.
+// SequentialRunner is a simple single threaded task runner.
 type SequentialRunner struct {
 	Client Doer
 	ErrorHandler
 }
 
+// Run implements the Run method of the Runner interface.
 func (r SequentialRunner) Run(task Task) error {
 	req := task.Request()
 	resp, err := r.Client.Do(req)
@@ -25,31 +26,31 @@ func (r SequentialRunner) Run(task Task) error {
 		task.Handle(nil) // notify that the fetch has failed, ignore the error.
 		if err = r.HandleError(req, err); err != nil {
 			return err
-		} else {
-			return nil
 		}
+		return nil
 	}
 	defer resp.Body.Close()
 	if err := task.Handle(resp); err != nil {
 		if err = r.HandleError(req, err); err != nil {
 			return err
-		} else {
-			return nil
 		}
+		return nil
 	}
 	return nil
 }
 
+// Close implements the Close method of the Runner interface.
 func (r SequentialRunner) Close() {
 }
 
-// Concurrent runner.
+// ConcurrentRunner runs tasks concurrently.
 type ConcurrentRunner struct {
 	seq SequentialRunner
 	ch  chan Task
 	wg  *sync.WaitGroup
 }
 
+// NewConcurrentRunner creates a concurrent runner.
 func NewConcurrentRunner(workerNum int, client Doer, errHandler ErrorHandler) ConcurrentRunner {
 	r := ConcurrentRunner{SequentialRunner{RetryDoer{client, RetryNum}, errHandler}, make(chan Task), new(sync.WaitGroup)}
 	r.wg.Add(workerNum)
@@ -59,11 +60,13 @@ func NewConcurrentRunner(workerNum int, client Doer, errHandler ErrorHandler) Co
 	return r
 }
 
+// Run implements the Run method of the Runner interface.
 func (r ConcurrentRunner) Run(task Task) error {
 	r.ch <- task
 	return nil
 }
 
+// Close implements the Close method of the Runner interface.
 func (r ConcurrentRunner) Close() {
 	close(r.ch)
 	r.wg.Wait()
@@ -82,6 +85,7 @@ type RetryDoer struct {
 	RetryTime int
 }
 
+// Do implements the Doer interface.
 func (d RetryDoer) Do(req *http.Request) (resp *http.Response, err error) {
 	for i := 0; i < d.RetryTime; i++ {
 		resp, err = d.Doer.Do(req)

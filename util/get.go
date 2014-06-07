@@ -11,6 +11,7 @@ import (
 	"os"
 )
 
+// MustGet gets the response of a URL or panics if any error occurs.
 func MustGet(url string) Response {
 	resp, err := http.Get(url)
 	checkError(err)
@@ -19,14 +20,17 @@ func MustGet(url string) Response {
 	return Response{resp.Body}
 }
 
+// Response provides convenient methods to save an HTTP response's body.
 type Response struct {
 	rc io.ReadCloser
 }
 
+// Close the reponse.
 func (r Response) Close() {
 	r.rc.Close()
 }
 
+// Save the response body to a file.
 func (r Response) Save(file string) error {
 	f, err := os.Create(file)
 	if err != nil {
@@ -42,7 +46,8 @@ func (r Response) Save(file string) error {
 	return nil
 }
 
-func (r Response) SavePrettyJson(file string) error {
+// SavePrettyJSON prettily formats a JSON response and save it to a file.
+func (r Response) SavePrettyJSON(file string) error {
 	var v interface{}
 	if err := json.NewDecoder(r.rc).Decode(&v); err != nil {
 		return err

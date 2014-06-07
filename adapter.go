@@ -7,18 +7,20 @@ package getgo
 import (
 	"errors"
 	"fmt"
-	"github.com/hailiang/html-query"
 	"io"
 	"net/http"
+
+	"github.com/hailiang/html-query"
 )
 
-// An adapter that converts a StorableTask to an atomized Task that supports
-// transaction.
+// Atomized is an adapter that converts a StorableTask to an atomized Task that
+// supports transaction.
 type Atomized struct {
 	StorableTask
 	Tx
 }
 
+// Handle implements the Handle method of Task interface.
 func (h Atomized) Handle(resp *http.Response) error {
 	if resp == nil {
 		return h.Tx.Rollback() // response is nil, rollback transaction.
@@ -30,13 +32,14 @@ func (h Atomized) Handle(resp *http.Response) error {
 	return h.Tx.Commit()
 }
 
-// An adapter that converts a TextTask to a StorableTask.
+// Storable is an adapter that converts a TextTask to a StorableTask.
 type Storable struct {
 	TextTask
 }
 
+// Handle implements the Handle method of StorableTask interface.
 func (b Storable) Handle(resp *http.Response, s Storer) error {
-	// Since an HtmlTask definitely uses response's body only, it requires that
+	// Since an HTMLTask definitely uses response's body only, it requires that
 	// status 20x is returned.
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusAccepted:
@@ -47,23 +50,24 @@ func (b Storable) Handle(resp *http.Response, s Storer) error {
 	return b.TextTask.Handle(resp.Body, s)
 }
 
-// An adapter that converts an HtmlTask to a TextTask.
+// Text is an adapter that converts an HTMLTask to a TextTask.
 type Text struct {
-	HtmlTask
+	HTMLTask
 }
 
+// Handle implements the Handle method of TextTask interface.
 func (t Text) Handle(r io.Reader, s Storer) error {
 	root, err := query.Parse(r)
 	if err != nil {
 		return err
 	}
-	return t.HtmlTask.Handle(root, s)
+	return t.HTMLTask.Handle(root, s)
 }
 
-// Adapt an HtmlTask, TextTask or Task itself to a Task.
+// ToTask adapts an HTMLTask, TextTask or Task itself to a Task.
 func ToTask(t interface{}, tx Tx) Task {
 	switch task := t.(type) {
-	case HtmlTask:
+	case HTMLTask:
 		return Atomized{Storable{Text{task}}, tx}
 	case TextTask:
 		return Atomized{Storable{task}, tx}
@@ -78,7 +82,7 @@ func ToTask(t interface{}, tx Tx) Task {
 // ErrorHandlerFunc converts a function object to a ErrorHandler interface.
 type ErrorHandlerFunc func(*http.Request, error) error
 
-// Implements ErrorHandler interface.
+// HandleError implements ErrorHandler interface.
 func (f ErrorHandlerFunc) HandleError(request *http.Request, err error) error {
 	return f(request, err)
 }

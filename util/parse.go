@@ -7,12 +7,14 @@ package util
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hailiang/html-query"
-	. "github.com/hailiang/html-query/expr"
 	"os"
+
+	"github.com/hailiang/html-query"
+	ex "github.com/hailiang/html-query/expr"
 )
 
-func MustLoadHtml(file string) *query.Node {
+// MustLoadHTML loads and parses an HTML file.
+func MustLoadHTML(file string) *query.Node {
 	f, err := os.Open(file)
 	checkError(err)
 	defer f.Close()
@@ -22,7 +24,8 @@ func MustLoadHtml(file string) *query.Node {
 	return node
 }
 
-func MustLoadJson(file string, v interface{}) {
+// MustLoadJSON loads and parses a JSON file.
+func MustLoadJSON(file string, v interface{}) {
 	f, err := os.Open(file)
 	checkError(err)
 	defer f.Close()
@@ -31,7 +34,8 @@ func MustLoadJson(file string, v interface{}) {
 	checkError(err)
 }
 
-func DumpAll(n *query.Node, cs ...Checker) {
+// DumpAll dumps all the nodes in the HTML DOM that satisfy the checkers provided.
+func DumpAll(n *query.Node, cs ...ex.Checker) {
 	it := n.Descendants(cs...)
 	for node := it.Next(); node != nil; node = it.Next() {
 		path := []*query.Node{}
@@ -47,6 +51,8 @@ func DumpAll(n *query.Node, cs ...Checker) {
 	}
 }
 
+// DumpAllText dumps all the text node in the HTML DOM that satisfy the regular
+// expression provided.
 func DumpAllText(n *query.Node, pat string) {
-	DumpAll(n, append([]Checker{TextNode}, Text(pat))...)
+	DumpAll(n, append([]ex.Checker{ex.TextNode}, ex.Text(pat))...)
 }

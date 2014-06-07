@@ -3,8 +3,6 @@
 // license that can be found in the LICENSE file.
 
 /*
-
-Docs goes here.
-
+Package getgo is a concurrent web scrapping framework.
 */
 package getgo

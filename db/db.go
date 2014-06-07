@@ -3,12 +3,14 @@
 // license that can be found in the LICENSE file.
 
 /*
-Common interface that all implementations under db directory must satisfy.
+Package db contains common interface that all implementations under db directory
+must satisfy.
 */
 package db
 
+// DB is a general interface for arbitrary database type.
 type DB interface {
-	Begin() (Tx, error)
+	Begin() (Tx, error) // Begin returns an object of transaction interface.
 }
 
 // Storer provides the Store method to store an object parsed from an HTTP
@@ -30,4 +32,3 @@ type Tx interface {
 	Commit() error
 	Rollback() error
 }
-
