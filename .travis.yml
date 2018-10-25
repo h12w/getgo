@@ -10,7 +10,7 @@ before_install:
 - go get code.google.com/p/go.tools/cmd/cover
 - go get code.google.com/p/go.tools/cmd/vet
 - go get github.com/bradfitz/goimports
-- go get github.com/golang/lint/golint
+- go get golang.org/x/lint/golint
 #- go get github.com/mattn/goveralls
 #- go get github.com/ogdl/flow
 - export goclean=0f22736320abe6be71ce
